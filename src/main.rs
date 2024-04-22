@@ -22,8 +22,8 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
     loop {
         match stream.read(&mut buf) {
             Ok(size) => {
-                println!("Read {:?}", size);
-                println!("What has been read {:?}", &buf[..size]);
+                // println!("Read {:?}", size);
+                // println!("What has been read {:?}", &buf[..size]);
                 if size == 0 {
                     break;
                 } 
