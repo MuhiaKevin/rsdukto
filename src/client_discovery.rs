@@ -7,7 +7,7 @@ use crate::DuktoClientMessage;
 
 
 pub fn discover_clients(client: Sender<DuktoClientMessage>)  {
-    let handle1 = std::thread::spawn(move || {
+    std::thread::spawn(move || {
         let udp_socket = UdpSocket::bind("0.0.0.0:4644")
             .expect("Failed to bind socket to port 4644");
 
@@ -33,13 +33,10 @@ pub fn discover_clients(client: Sender<DuktoClientMessage>)  {
     });
 
 
-    let handle2 = std::thread::spawn(|| {
+    std::thread::spawn(|| {
         get_discovered_by_clients();
 
     });
-
-    handle1.join().unwrap();
-    handle2.join().unwrap();
 }
 
 
@@ -67,6 +64,6 @@ fn get_discovered_by_clients() {
         println!("Sending broad cast message");
         // socket.send_to(&msg, broadcast_socket_addr).expect("couldn't send data");
         socket.send_to(&msg, "255.255.255.255:4644").expect("couldn't send data");
-        std::thread::sleep(Duration::from_secs(2))
+        std::thread::sleep(Duration::from_secs(10))
     }
 }

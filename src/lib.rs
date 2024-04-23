@@ -18,6 +18,11 @@ pub fn run() -> Result<()> {
     let (sender, reciever) = mpsc::channel();
     let mut clients = std::collections::HashMap::new();
 
+
+    std::thread::spawn(|| {
+        dukto_download::download().unwrap();
+    });
+
     client_discovery::discover_clients(sender);
 
     // while let Ok(dukto_client)  = reciever.recv() {
@@ -42,6 +47,5 @@ pub fn run() -> Result<()> {
         println!("Result: {:?}\n\n", clients);
     }
 
-    //dukto_download::download()?;
     Ok(())
 }
