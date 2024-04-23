@@ -11,7 +11,7 @@ fn handle_client(mut stream: TcpStream) -> Result<()> {
     // let name = format!("/tmp/{}", from_utf8(&buf[16..size - 9])?);
     let name = from_utf8(&buf[16..size - 9])?;
     println!("{:?}", &buf[16..size - 9]);
-    println!("Filename: {}", name);
+    println!("Downloading filename: {}", name);
 
     // Open the path in read-only mode, returns `io::Result<File>`
     let mut file = match File::create(&name) {

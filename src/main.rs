@@ -1,8 +1,6 @@
-use anyhow::Result;
-use rsdukto::dukto_download;
-
-fn main() -> Result<()> {
-    dukto_download::download()?;
-
-    Ok(())
+fn main() {
+    if let Err(e) = rsdukto::run() {
+        eprintln!("{}", e);
+        std::process::exit(1);
+    }
 }
