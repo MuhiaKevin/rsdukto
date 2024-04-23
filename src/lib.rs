@@ -39,12 +39,18 @@ pub fn run() -> Result<()> {
     for dukto_client in reciever {
         // 1. check if client is in map and add the client to hashmap if not in
         // 2. if client not in hashmap, add the client to hash map and send the file/folder
-        let _ = &clients.insert(
-            dukto_client.message,
-            dukto_client.address,
-        );
 
-        println!("Result: {:?}\n\n", clients);
+        let message = &dukto_client.message[1..];
+        let message = message.to_string();
+
+        if message != "Bye Bye" {
+            let _ = &clients.insert(
+                message,
+                dukto_client.address,
+            );
+        }
+
+        println!("Result: {:#?}\n\n", clients);
     }
 
     Ok(())

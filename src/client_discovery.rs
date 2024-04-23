@@ -61,7 +61,7 @@ fn get_discovered_by_clients() {
 
 
     loop {
-        println!("Sending broad cast message");
+        println!("Sending broadcast message");
         // socket.send_to(&msg, broadcast_socket_addr).expect("couldn't send data");
         socket.send_to(&msg, "255.255.255.255:4644").expect("couldn't send data");
         std::thread::sleep(Duration::from_secs(10))
