@@ -36,18 +36,22 @@ pub fn run() -> Result<()> {
 
 
     // spawn threads that sends files, folders or text to other dukto clients
-    for dukto_client in reciever {
         // 1. check if client is in map and add the client to hashmap if not in
         // 2. if client not in hashmap, add the client to hash map and send the file/folder
-
+    for dukto_client in reciever {
         let message = &dukto_client.message[1..];
         let message = message.to_string();
 
         if message != "Bye Bye" {
-            let _ = &clients.insert(
-                message,
-                dukto_client.address,
-            );
+            if !clients.contains_key(&message) {
+                // println!("Adding {} in map", message);
+                let _ = &clients.insert(
+                    message,
+                    dukto_client.address,
+                );
+
+                // spawn thread send file to the client
+            }
         }
 
         println!("Result: {:#?}\n\n", clients);
