@@ -7,11 +7,10 @@ const PORT: u32 = 4644;
 const FILE_NAME: &'static str = "";
 
 // FIX: losts of unnecessary vecs, allocations
-fn build_head() -> Vec<u8> {
+fn build_head(file_handle: &File) -> Vec<u8> {
     let mut buf = vec![0u8; 8];
 
-    let input_file = File::open(crate::dukto_upload::FILE_NAME).unwrap(); 
-    let metadata = input_file.metadata().unwrap();
+    let metadata = file_handle.metadata().unwrap();
     let file_size = metadata.len() as u32;
 
     let mut le_writer = NumberWriter::with_order(byte_order::ByteOrder::LE, &mut buf[..]);
@@ -21,7 +20,7 @@ fn build_head() -> Vec<u8> {
 }
 
 
-fn full_packet() -> Vec<u8> {
+fn full_packet(file_handle: &File) -> Vec<u8> {
     let file_name = crate::dukto_upload::FILE_NAME;
     let mut header: Vec<u8> = vec![];
     let mut full_packet: Vec<u8> = vec![];
@@ -29,7 +28,7 @@ fn full_packet() -> Vec<u8> {
 
     buf[0] = 1;
 
-    let mut code = build_head();
+    let mut code = build_head(file_handle);
     code.insert(0, 0);
 
     let mut tail = code.clone();
@@ -52,25 +51,6 @@ fn full_packet() -> Vec<u8> {
 // 4. stream the file to the client
 // 5. TODO: support sending multiple files
 
-fn stream_file_to_client(mut stream: TcpStream, file_path: &str) -> io::Result<()> {
-    // Open the file for reading
-    let mut file = File::open(file_path)?;
-    
-    // Buffer for reading chunks of the file
-    let mut buffer = [0u8; 1024]; // 1 KB buffer
-    
-    // Read the file and send it to the client
-    loop {
-        let bytes_read = file.read(&mut buffer)?;
-        if bytes_read == 0 {
-            break; // End of file
-        }
-        stream.write_all(&buffer[..bytes_read])?; // Send the chunk to the client
-    }
-
-    Ok(())
-}
-
 pub fn send_file(addr: String) -> io::Result<()> {
     let addr = format!("{}:{}", addr, PORT);
     
@@ -79,12 +59,11 @@ pub fn send_file(addr: String) -> io::Result<()> {
     println!("Connected to server");
     let mut total = 0;
 
-
-    let intial_packet =  full_packet();
-    let _ = stream.write(&intial_packet);
-
     let mut input_file = File::open(crate::dukto_upload::FILE_NAME)?;
     let mut buffer = [0u8; 1024]; // 1 KB buffer
+
+    let intial_packet =  full_packet(&input_file);
+    let _ = stream.write(&intial_packet);
 
 
     // Read the file in chunks and send to the server

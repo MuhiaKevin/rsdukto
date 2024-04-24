@@ -36,23 +36,20 @@ pub fn run() -> Result<()> {
     // }
 
 
-    // spawn threads that sends files, folders or text to other dukto clients
-        // 1. check if client is in map and add the client to hashmap if not in
-        // 2. if client not in hashmap, add the client to hash map and send the file/folder
     for dukto_client in reciever {
         let message = &dukto_client.message[1..];
         let message = message.to_string();
 
         if message != "Bye Bye" {
+            // 1. check if client is in map and add the client to hashmap if not in
             if !clients.contains_key(&message) {
-                // println!("Adding {} in map", message);
+                // 2. if client not in hashmap, add the client to hash map and send the file/folder
                 let _ = &clients.insert(
                     message,
                     dukto_client.address.clone(),
                 );
 
-
-                // spawn thread send file to the client
+                // 3. spawn threads that sends files, folders or text to other dukto clients
                 std::thread::spawn(move|| {
                     send_file(dukto_client.address)
                 });
