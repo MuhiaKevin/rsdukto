@@ -1,4 +1,4 @@
-use std::net::UdpSocket;
+use std::net::{SocketAddr, UdpSocket};
 use std::time::Duration;
 use std::str::from_utf8;
 use std::sync::mpsc::Sender;
@@ -23,12 +23,15 @@ pub fn discover_clients(client: Sender<DuktoClientMessage>)  {
 
             let message = from_utf8(&buf[..number_of_bytes_read]).unwrap();
 
-            let dc = DuktoClientMessage {
-                message: message.to_string(),
-                address: src_addr,
-            };
 
-            client.send(dc).unwrap();
+            if let SocketAddr::V4(addr) = src_addr {
+                let dc = DuktoClientMessage {
+                    message: message.to_string(),
+                    address: addr.ip().to_string(),
+                };
+
+                client.send(dc).unwrap();
+            }
         }
     });
 

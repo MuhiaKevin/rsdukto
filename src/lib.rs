@@ -4,14 +4,14 @@ mod dukto_upload;
 
 
 use std::sync::mpsc;
-use std::net::SocketAddr;
 use anyhow::Result;
+use crate::dukto_upload::send_file;
 
 
 #[derive(Debug)]
 struct DuktoClientMessage {
     message: String,
-    address: SocketAddr,
+    address: String,
 }
 
 
@@ -20,9 +20,9 @@ pub fn run() -> Result<()> {
     let mut clients = std::collections::HashMap::new();
 
 
-    std::thread::spawn(|| {
-        dukto_download::download().unwrap();
-    });
+    // std::thread::spawn(|| {
+    //     dukto_download::download().unwrap();
+    // });
 
     client_discovery::discover_clients(sender);
 
@@ -48,10 +48,14 @@ pub fn run() -> Result<()> {
                 // println!("Adding {} in map", message);
                 let _ = &clients.insert(
                     message,
-                    dukto_client.address,
+                    dukto_client.address.clone(),
                 );
 
+
                 // spawn thread send file to the client
+                std::thread::spawn(move|| {
+                    send_file(dukto_client.address)
+                });
             }
         }
 
