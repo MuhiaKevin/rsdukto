@@ -21,7 +21,7 @@ fn build_head(file_handle: &File) -> Vec<u8> {
 
 
 fn full_packet(file_handle: &File) -> Vec<u8> {
-    let file_name = crate::dukto_upload::FILE_NAME;
+    let file_name = FILE_NAME;
     let mut header: Vec<u8> = vec![];
     let mut full_packet: Vec<u8> = vec![];
     let mut buf = vec![0u8; 7];
@@ -59,7 +59,7 @@ pub fn send_file(addr: String) -> io::Result<()> {
     println!("Connected to server");
     let mut total = 0;
 
-    let mut input_file = File::open(crate::dukto_upload::FILE_NAME)?;
+    let mut input_file = File::open(FILE_NAME)?;
     let mut buffer = [0u8; 1024]; // 1 KB buffer
 
     let intial_packet =  full_packet(&input_file);

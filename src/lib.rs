@@ -1,11 +1,12 @@
 mod dukto_download;
 mod client_discovery;
-mod dukto_upload;
+pub mod dukto_upload;
 
 
 use std::sync::mpsc;
 use anyhow::Result;
-use crate::dukto_upload::send_file;
+// use dukto_upload::send_file::send_file;
+use dukto_upload::send_multiple_files::send_multiple_files;
 
 
 #[derive(Debug)]
@@ -51,7 +52,8 @@ pub fn run() -> Result<()> {
 
                 // 3. spawn threads that sends files, folders or text to other dukto clients
                 std::thread::spawn(move|| {
-                    send_file(dukto_client.address)
+                    // send_file(dukto_client.address)
+                    send_multiple_files(dukto_client.address)
                 });
             }
         }
