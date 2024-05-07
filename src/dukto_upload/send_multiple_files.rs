@@ -1,3 +1,4 @@
+use std::env;
 use std::fs::File;
 use std::io::{self, Write, Read};
 use std::net::TcpStream;
@@ -10,10 +11,15 @@ pub fn send_multiple_files(addr: String) -> io::Result<()>  {
     let mut size_of_files_sent = 0;
     let addr = format!("{}:{}", addr, PORT);
     
+    let args: Vec<String> = env::args().collect();
+
     // TODO: GET files from commandline and use 'Path'
-    let file_paths = [];
+    let file_paths = &args[1..];
+    println!("{file_paths:?}");
 
     let total_size =  get_total_size(&file_paths).unwrap();
+    // println!("{total_size:?}");
+    // panic!("SENDING MULTIPLE FILES");
 
     let mut stream = TcpStream::connect(addr)?;
     println!("Connected to server");
@@ -32,6 +38,7 @@ pub fn send_multiple_files(addr: String) -> io::Result<()>  {
         let file_pack = create_individual_file_packet(file, file_size);
         let _ = stream.write(&file_pack);
 
+        // FIX: USE BUFREADER HERE
         loop {
             let bytes_read = input_file.read(&mut buffer)?;
             if bytes_read == 0 {
@@ -49,7 +56,7 @@ pub fn send_multiple_files(addr: String) -> io::Result<()>  {
     Ok(())
 }
 
-fn get_total_size(paths: &[&str]) -> Result<u64, io::Error> {
+fn get_total_size(paths: &[String]) -> Result<u64, io::Error> {
     let mut total_size: u64 = 0;
 
     for path in paths {
@@ -88,9 +95,20 @@ fn create_individual_file_packet(file_name: &str, file_size: u64) -> Vec<u8> {
     le_writer.write_u64(file_size).unwrap();
 
 
-    file_pack.extend(file_name.as_bytes());
+    file_pack.extend(get_filename(file_name).as_bytes());
     file_pack.push(0);
     file_pack.append(&mut file_size_buf);
     
     file_pack
+}
+
+
+fn get_filename(filename: &str) -> &str {
+    let file_path = Path::new(filename);
+    let true_filename = file_path.file_name().unwrap().to_str().unwrap();
+
+    println!("TRUE_FILENAME {:?}", true_filename);
+    println!("FILE PATH: {}", filename);
+
+    true_filename
 }

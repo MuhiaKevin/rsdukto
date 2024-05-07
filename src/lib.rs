@@ -3,9 +3,9 @@ mod client_discovery;
 mod dukto_upload;
 
 
-use std::sync::mpsc;
+use std::{env, sync::mpsc};
 use anyhow::Result;
-use dukto_upload::send_file;
+use dukto_upload::{send_file, send_multiple_files};
 
 // https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
 
@@ -17,10 +17,16 @@ struct DuktoClientMessage {
 
 
 const PORT: u32 = 4644;
-const MY_DEVICE_NAME: &'static str = "Chifu at Kizunu (Rustlang)";
+const DEVICE_NAME: &'static str = "Chifu at Kizunu (Rustlang)";
 
 
 pub fn run() -> Result<()> {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() < 2 {
+        panic!("Enter atlease 1 file or folder");
+    }
+
     let (sender, reciever) = mpsc::channel();
     let mut clients = std::collections::HashMap::new();
 
@@ -35,7 +41,7 @@ pub fn run() -> Result<()> {
         let device_name = &dukto_client.device_name[1..];
         let device_name = device_name.to_string();
 
-        if device_name != "Bye Bye" && device_name != MY_DEVICE_NAME {
+        if device_name != "Bye Bye" && device_name != DEVICE_NAME {
             if !clients.contains_key(&device_name) {
                 let _ = &clients.insert(
                     device_name,
@@ -43,9 +49,16 @@ pub fn run() -> Result<()> {
                 );
 
                 // TODO: use threadpool instead of this
-                std::thread::spawn(move|| {
-                    send_file::send_file(dukto_client.address)
-                });
+                if args.len() >= 3 {
+                    std::thread::spawn(move|| {
+                        send_multiple_files::send_multiple_files(dukto_client.address)
+                    });
+
+                } else {
+                    std::thread::spawn(move|| {
+                        send_file::send_file(dukto_client.address)
+                    });
+                }
             }
         }
 

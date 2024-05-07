@@ -1,11 +1,11 @@
+use std::env;
 use std::fs::File;
+use std::path::Path;
 use byte_order::NumberWriter;
 use std::io::{self, Read, Write};
 use std::net::TcpStream;
 use crate::PORT;
 
-// GET FILENAME FROM CLAP INSTEAD OF THIS
-const FILE_NAME: &'static str = "";
 
 struct SendFile{
     file_handle: File,
@@ -39,8 +39,9 @@ impl SendFile {
         header.append(&mut buf);
         header.append(&mut code);
 
+
         full_packet.append(&mut header);
-        full_packet.extend(filename.as_bytes());
+        full_packet.extend(get_filename(filename).as_bytes());
         full_packet.append(&mut tail);
 
         Self {
@@ -50,13 +51,28 @@ impl SendFile {
     }
 }
 
+fn get_filename(filename: &str) -> &str {
+    // get name of file instead of path
+    let file_path = Path::new(filename);
+    let true_filename = file_path.file_name().unwrap().to_str().unwrap();
+
+    println!("TRUE_FILENAME {:?}", true_filename);
+    println!("FILE PATH: {}", filename);
+
+    true_filename
+}
 
 
 pub fn send_file(addr: String) -> io::Result<()> {
-    let addr = format!("{}:{}", addr, PORT);
+    // TODO: GET files from commandline and use 'Path'
+    // GET FILENAME FROM CLAP INSTEAD OF THIS
+    let args: Vec<String> = env::args().collect();
+    let file_name = &args[1];
 
-    let mut input_file = SendFile::build(FILE_NAME);
+    let mut input_file = SendFile::build(file_name);
     let mut buffer = [0u8; 1024]; // 1 KB buffer
+
+    let addr = format!("{}:{}", addr, PORT);
 
     let mut stream = TcpStream::connect(addr)?;
     println!("Connected to server");
@@ -80,14 +96,14 @@ pub fn send_file(addr: String) -> io::Result<()> {
 }
 
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn check_inital_packet() {
-        let file_packet = vec![1, 0, 0, 0, 0, 0, 0, 0, 199, 93, 248, 1, 0, 0, 0, 0, 76, 111, 99, 97, 108, 83, 101, 110, 100, 45, 49, 46, 49, 52, 46, 48, 46, 97, 112, 107, 0, 199, 93, 248, 1, 0, 0, 0, 0];
-        let input_file = SendFile::build(FILE_NAME);
-
-        assert_eq!(file_packet, input_file.intial_packet) }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//
+//     #[test]
+//     fn check_inital_packet() {
+//         let file_packet = vec![1, 0, 0, 0, 0, 0, 0, 0, 199, 93, 248, 1, 0, 0, 0, 0, 76, 111, 99, 97, 108, 83, 101, 110, 100, 45, 49, 46, 49, 52, 46, 48, 46, 97, 112, 107, 0, 199, 93, 248, 1, 0, 0, 0, 0];
+//         let input_file = SendFile::build(FILE_NAME);
+//
+//         assert_eq!(file_packet, input_file.intial_packet) }
+// }
