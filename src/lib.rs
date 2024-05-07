@@ -5,7 +5,7 @@ mod dukto_upload;
 
 use std::sync::mpsc;
 use anyhow::Result;
-use dukto_upload::send_multiple_files;
+use dukto_upload::send_file;
 
 // https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
 
@@ -20,16 +20,13 @@ const PORT: u32 = 4644;
 const MY_DEVICE_NAME: &'static str = "Chifu at Kizunu (Rustlang)";
 
 
-
 pub fn run() -> Result<()> {
     let (sender, reciever) = mpsc::channel();
     let mut clients = std::collections::HashMap::new();
 
     // TODO: Support downloading multiple files, folders and text
     // wait to download a single file
-    std::thread::spawn(|| {
-        dukto_download::download().unwrap();
-    });
+    std::thread::spawn(move || dukto_download::download().unwrap());
 
     // send and receive udp broadcast message for discovery
     client_discovery::discover_clients(sender);
@@ -47,7 +44,7 @@ pub fn run() -> Result<()> {
 
                 // TODO: use threadpool instead of this
                 std::thread::spawn(move|| {
-                    send_multiple_files::send_multiple_files(dukto_client.address)
+                    send_file::send_file(dukto_client.address)
                 });
             }
         }
