@@ -8,3 +8,11 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.80"
 byte-order = "0.3.0"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true
+opt-level = 'z' # only have smaller size after strip
+rpath = true

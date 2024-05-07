@@ -3,8 +3,7 @@ use std::io::{self, Write, Read};
 use std::net::TcpStream;
 use std::path::Path;
 use byte_order::NumberWriter;
-
-const PORT: u32 = 4644;
+use crate::PORT;
 
 pub fn send_multiple_files(addr: String) -> io::Result<()>  {
     let mut buffer = [0u8; 1024]; // 1 KB buffer

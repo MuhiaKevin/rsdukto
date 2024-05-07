@@ -26,7 +26,7 @@ pub fn discover_clients(client: Sender<DuktoClientMessage>)  {
 
             if let SocketAddr::V4(addr) = src_addr {
                 let dc = DuktoClientMessage {
-                    message: message.to_string(),
+                    device_name: message.to_string(),
                     address: addr.ip().to_string(),
                 };
 

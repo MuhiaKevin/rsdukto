@@ -2,8 +2,8 @@ use std::fs::File;
 use byte_order::NumberWriter;
 use std::io::{self, Read, Write};
 use std::net::TcpStream;
+use crate::PORT;
 
-const PORT: u32 = 4644;
 const FILE_NAME: &'static str = "";
 
 // FIX: losts of unnecessary vecs, allocations

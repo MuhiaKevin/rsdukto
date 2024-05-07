@@ -1,59 +1,53 @@
 mod dukto_download;
 mod client_discovery;
-pub mod dukto_upload;
+mod dukto_upload;
 
 
 use std::sync::mpsc;
 use anyhow::Result;
-// use dukto_upload::send_file::send_file;
-use dukto_upload::send_multiple_files::send_multiple_files;
+use dukto_upload::send_multiple_files;
 
+// https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
 
 #[derive(Debug)]
 struct DuktoClientMessage {
-    message: String,
+    device_name: String,
     address: String,
 }
+
+
+const PORT: u32 = 4644;
+const MY_DEVICE_NAME: &'static str = "Chifu at Kizunu (Rustlang)";
+
 
 
 pub fn run() -> Result<()> {
     let (sender, reciever) = mpsc::channel();
     let mut clients = std::collections::HashMap::new();
 
+    // TODO: Support downloading multiple files, folders and text
+    // wait to download a single file
+    std::thread::spawn(|| {
+        dukto_download::download().unwrap();
+    });
 
-    // std::thread::spawn(|| {
-    //     dukto_download::download().unwrap();
-    // });
-
+    // send and receive udp broadcast message for discovery
     client_discovery::discover_clients(sender);
 
-    // while let Ok(dukto_client)  = reciever.recv() {
-    //     let _ = &clients.insert(
-    //         dukto_client.message,
-    //         dukto_client.address,
-    //     );
-    //
-    //     println!("Result: {:?}\n\n", clients);
-    // }
-
-
     for dukto_client in reciever {
-        let message = &dukto_client.message[1..];
-        let message = message.to_string();
+        let device_name = &dukto_client.device_name[1..];
+        let device_name = device_name.to_string();
 
-        if message != "Bye Bye" {
-            // 1. check if client is in map and add the client to hashmap if not in
-            if !clients.contains_key(&message) {
-                // 2. if client not in hashmap, add the client to hash map and send the file/folder
+        if device_name != "Bye Bye" && device_name != MY_DEVICE_NAME {
+            if !clients.contains_key(&device_name) {
                 let _ = &clients.insert(
-                    message,
+                    device_name,
                     dukto_client.address.clone(),
                 );
 
-                // 3. spawn threads that sends files, folders or text to other dukto clients
+                // TODO: use threadpool instead of this
                 std::thread::spawn(move|| {
-                    // send_file(dukto_client.address)
-                    send_multiple_files(dukto_client.address)
+                    send_multiple_files::send_multiple_files(dukto_client.address)
                 });
             }
         }
