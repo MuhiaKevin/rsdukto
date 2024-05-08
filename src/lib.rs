@@ -1,6 +1,6 @@
 mod dukto_download;
 mod client_discovery;
-mod dukto_upload;
+pub mod dukto_upload;
 
 
 use std::{env, sync::mpsc};

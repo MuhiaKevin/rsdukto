@@ -18,8 +18,6 @@ pub fn send_multiple_files(addr: String) -> io::Result<()>  {
     println!("{file_paths:?}");
 
     let total_size =  get_total_size(&file_paths).unwrap();
-    // println!("{total_size:?}");
-    // panic!("SENDING MULTIPLE FILES");
 
     let mut stream = TcpStream::connect(addr)?;
     println!("Connected to server");
