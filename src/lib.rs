@@ -8,6 +8,7 @@ use anyhow::Result;
 use dukto_upload::{send_file, send_multiple_files};
 
 // https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
+// TODO: Add support for Microsoft Windows
 
 #[derive(Debug)]
 struct DuktoClientMessage {

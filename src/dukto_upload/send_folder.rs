@@ -4,6 +4,10 @@ use std::fs::{self, DirEntry};
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
+use byte_order::NumberWriter;
+
+// TODO: Send folder given absolute or relative path to folder
+// FIX: For now can only send using absolute path
 
 pub fn main() {
     let args: Vec<_> = std::env::args().collect();
@@ -24,40 +28,42 @@ pub fn main() {
 
 
 
-fn create_folder_info(path: &Path) {
+fn create_folder_info(folder_name: &Path) {
     // let total_num_of_files = vec![0u8; 8];
     // let total_size_of_folder = vec![0u8; 8];
     // let something = vec![0xffu8; 8];
     // let mut num_of_files = 0;
     // let mut folder_size = 0;
 
-    let root_name = path.file_name().unwrap().
-        to_str().unwrap()
-        .as_bytes();
+    let root_name = folder_name.file_name().unwrap().
+        to_str().unwrap();
 
-    println!("{root_name:?}");
 
     let mut total_size: u64 = 0;
     let mut num_of_files: u64 = 0;
     let mut files_and_their_packets: HashMap<String, Vec<u8>> = HashMap::new();
     
     let mut closure =  |entry: &DirEntry|  {
-        let path = entry.path();
+        if entry.path().exists() && entry.path().is_file() && !entry.path().is_symlink() {
+            let path = entry.path();
 
-        if path.exists() && path.is_file() && !path.is_symlink() {
-            // set total size of all files in the folder and how many they are
             let file_size = path.metadata().unwrap().size();
+            // let something: Vec<_> = path.to_str().unwrap().split("/").collect();
+            // println!("{something:?}");
+
+            map_file_to_intial_packet(root_name, &path, file_size, &mut files_and_their_packets);
+            
+            // set total size of all files in the folder and how many they are
             total_size += file_size;
             num_of_files += 1;
-
-            println!("Filename {path:?} has size: {file_size}");
         }
     };
 
     let show_entry: Box<&mut dyn FnMut(&DirEntry)> = Box::new(&mut closure);
-    visit_dirs(path, *show_entry).unwrap();
+    visit_dirs(folder_name, *show_entry).unwrap();
 
-    println!("{num_of_files} files with total size of : {total_size} bytes");
+    // println!("{num_of_files} files with total size of : {total_size} bytes");
+    println!("{files_and_their_packets:#?}");
 }
 
 
@@ -74,4 +80,31 @@ fn visit_dirs(dir: &Path, cb: &mut dyn FnMut(&DirEntry)) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+
+
+// TODO: write test 
+fn map_file_to_intial_packet(folder_name: &str, file_path: &Path, file_size: u64, files_and_their_packets: &mut HashMap<String, Vec<u8>>)  {
+    let split_by_folder_name = file_path.to_str().unwrap()
+        .split_once(folder_name).unwrap();
+
+    let new_path = folder_name.to_string() + split_by_folder_name.1;
+
+    let mut full_packet: Vec<u8> = vec![];
+    let mut total_size_bytes: Vec<u8> = vec![0u8; 8];
+
+    full_packet.extend(new_path.as_bytes());
+    full_packet.push(0);
+
+
+    let mut le_writer = NumberWriter::with_order(byte_order::ByteOrder::LE, &mut total_size_bytes[..]);
+    le_writer.write_u32(file_size as u32).unwrap();
+
+    full_packet.append(&mut total_size_bytes);
+
+    // println!("{full_packet:?}");
+    // panic!("Just crash");
+    
+    files_and_their_packets.insert(new_path, full_packet);
 }
