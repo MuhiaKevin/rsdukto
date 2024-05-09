@@ -1,34 +1,165 @@
 use std::collections::HashMap;
-use std::io;
-use std::fs::{self, DirEntry};
+use std::fs::{self, DirEntry, File};
+use std::net::TcpStream;
 use std::os::unix::fs::MetadataExt;
+use std::io::{self, Read, Write};
 use std::path::Path;
 
 use byte_order::NumberWriter;
 
+use crate::PORT;
+
 // TODO: Send folder given absolute or relative path to folder
 // FIX: For now can only send using absolute path
 
-pub fn main() {
-    let args: Vec<_> = std::env::args().collect();
-    let path = std::path::Path::new(&args[1]);
 
-    // for entry in path.read_dir().expect("read_dir call failed") {
-    //     if let Ok(entry) = entry {
-    //         println!("{:?}", entry.path());
-    //     }
-    // }
-
-    // let show_entry: &dyn Fn(&DirEntry) = &|entry: &DirEntry|  println!("{:?}", entry.path());
-    //
-    // visit_dirs(path, show_entry ).unwrap()
-
-    create_folder_info(path);
+#[derive(Debug)]
+struct SendFolder {
+    folder_name: String,
+    intial_packet: Vec<u8>,
+    files_and_their_packets:  HashMap<String, Vec<u8>>,
 }
 
 
+pub fn send_folder(addr: String) -> io::Result<()> {
+    let args: Vec<_> = std::env::args().collect();
+    let folder_name = std::path::Path::new(&args[1]);
 
-fn create_folder_info(folder_name: &Path) {
+    let send_folder = create_folder_info(folder_name);
+    let mut buffer = [0u8; 1024]; // 1 KB buffer
+
+    let addr = format!("{}:{}", addr, PORT);
+
+    let mut stream = TcpStream::connect(addr)?;
+    println!("Connected to server");
+    // let mut total = 0;
+
+    let _ = stream.write(&send_folder.intial_packet);
+
+    let mut closure =  |entry: &DirEntry|  {
+        if entry.path().exists() && entry.path().is_file() && !entry.path().is_symlink() {
+            let path = entry.path();
+            let file_path_str = path.to_str().unwrap();
+            let split_by_folder_name = file_path_str
+                .split_once(&send_folder.folder_name)
+                .unwrap();
+
+            let new_path = send_folder.folder_name.clone() + split_by_folder_name.1;
+            println!("{new_path:?}");
+
+
+            // get file pack 
+            if let Some(file_pack) = send_folder.files_and_their_packets.get(&new_path) {
+                // println!("File: Pack {file_pack:?}");
+                // send file_pack
+                let _ = stream.write(&file_pack);
+                
+                // open file
+                let mut input_file = File::open(file_path_str).unwrap();
+
+                // Stream file
+                loop {
+                    let bytes_read = input_file.read(&mut buffer).unwrap();
+                    if bytes_read == 0 {
+                        break;
+                    }
+
+                    // FIX: This error shows up when sending certain folders
+                    // thread '<unnamed>' panicked at src/dukto_upload/send_folder.rs:67:61:
+                    // called `Result::unwrap()` on an `Err` value: Os { code: 104, kind: ConnectionReset, message: "Connection reset by peer" }
+                    // The other dukto client resets the connection
+                    stream.write_all(&buffer[..bytes_read]).unwrap();
+                }
+
+                println!("File has been successfully sent.");
+            }
+        }
+    };
+
+    let show_entry: Box<&mut dyn FnMut(&DirEntry)> = Box::new(&mut closure);
+    visit_dirs(folder_name, *show_entry).unwrap();
+
+    Ok(())
+}
+
+// pub fn main() {
+//     let args: Vec<_> = std::env::args().collect();
+//     let path = std::path::Path::new(&args[1]);
+//
+//     // for entry in path.read_dir().expect("read_dir call failed") {
+//     //     if let Ok(entry) = entry {
+//     //         println!("{:?}", entry.path());
+//     //     }
+//     // }
+//
+//     // let show_entry: &dyn Fn(&DirEntry) = &|entry: &DirEntry|  println!("{:?}", entry.path());
+//     //
+//     // visit_dirs(path, show_entry ).unwrap()
+//
+//     let send_folder = create_folder_info(path);
+//     // println!("{:#?}", send_folder);
+//
+//     //
+//     // let args: Vec<_> = std::env::args().collect();
+//     // let folder_name = std::path::Path::new(&args[1]);
+//     //
+//     //
+//     // let send_folder = create_folder_info(folder_name);
+//     let mut buffer = [0u8; 1024]; // 1 KB buffer
+//
+//     // let addr = format!("{}:{}", addr, PORT);
+//
+//     // let mut stream = TcpStream::connect(addr)?;
+//     // println!("Connected to server");
+//     // // let mut total = 0;
+//     //
+//     // let _ = stream.write(&send_folder.intial_packet);
+//
+//
+//     let mut closure =  |entry: &DirEntry|  {
+//         if entry.path().exists() && entry.path().is_file() && !entry.path().is_symlink() {
+//             let path = entry.path();
+//             let file_path_str = path.to_str().unwrap();
+//             let split_by_folder_name = file_path_str
+//                 .split_once(&send_folder.folder_name)
+//                 .unwrap();
+//
+//             let new_path = send_folder.folder_name.clone() + split_by_folder_name.1;
+//             println!("{new_path:?}");
+//
+//
+//             // get file pack 
+//             if let Some(file_pack) = send_folder.files_and_their_packets.get(&new_path) {
+//                 println!("File: Pack {file_pack:?}");
+//                 // send file_pack
+//                 // let _ = stream.write(&file_pack);
+//                 
+//                 // open file
+//                 let mut input_file = File::open(file_path_str).unwrap();
+//
+//                 // Stream file
+//                 loop {
+//                     let bytes_read = input_file.read(&mut buffer).unwrap();
+//                     if bytes_read == 0 {
+//                         break; // End of file
+//                     }
+//                     stream.write_all(&buffer[..bytes_read])?; // Send the chunk to the server
+//                     // total += bytes_read;
+//                     // println!("STREAAAAAAAAAAAAAAAMING FILE: SENT  {total} bytes");
+//                 }
+//
+//                 println!("File has been successfully sent.");
+//             }
+//         }
+//     };
+//
+//     let show_entry: Box<&mut dyn FnMut(&DirEntry)> = Box::new(&mut closure);
+//     visit_dirs(path, *show_entry).unwrap();
+// }
+
+
+
+fn create_folder_info(folder_name: &Path) -> SendFolder {
     let mut full_packet: Vec<u8> = vec![];
     let mut total_num_of_files = vec![0u8; 8];
     let mut total_size_of_folder = vec![0u8; 8];
@@ -58,7 +189,7 @@ fn create_folder_info(folder_name: &Path) {
     let show_entry: Box<&mut dyn FnMut(&DirEntry)> = Box::new(&mut closure);
     visit_dirs(folder_name, *show_entry).unwrap();
 
-    println!("{num_of_files} files with total size of : {total_size} bytes");
+    // println!("{num_of_files} files with total size of : {total_size} bytes");
     // println!("{num_of_files} files with total size of : {total_size} bytes");
     // println!("{files_and_their_packets:#?}");
 
@@ -77,7 +208,11 @@ fn create_folder_info(folder_name: &Path) {
     full_packet.push(0);
     full_packet.append(&mut end_bytes);
 
-   println!("full_packet: {full_packet:?}") 
+    SendFolder {
+        folder_name: root_name.to_string(),
+        intial_packet: full_packet,
+        files_and_their_packets
+    }
 }
 
 

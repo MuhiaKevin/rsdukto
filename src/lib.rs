@@ -1,11 +1,15 @@
 mod dukto_download;
 mod client_discovery;
-pub mod dukto_upload;
+mod dukto_upload;
 
 
-use std::{env, sync::mpsc};
+use std::env;
+use std::path::Path;
+use std::sync::mpsc;
 use anyhow::Result;
 use dukto_upload::{send_file, send_multiple_files};
+
+use crate::dukto_upload::send_folder;
 
 // https://stackoverflow.com/questions/56535634/propagating-errors-from-within-a-closure-in-a-thread-in-rust
 // TODO: Add support for Microsoft Windows
@@ -23,6 +27,7 @@ const DEVICE_NAME: &'static str = "Chifu at Kizunu (Rustlang)";
 
 pub fn run() -> Result<()> {
     let args: Vec<String> = env::args().collect();
+    let opt1 = Path::new(&args[1]);
 
     if args.len() < 2 {
         panic!("Enter atlease 1 file or folder");
@@ -50,15 +55,22 @@ pub fn run() -> Result<()> {
                 );
 
                 // TODO: use threadpool instead of this
-                if args.len() >= 3 {
+                if opt1.is_dir() {
                     std::thread::spawn(move|| {
-                        send_multiple_files::send_multiple_files(dukto_client.address)
+                        send_folder::send_folder(dukto_client.address)
                     });
-
+                    
                 } else {
-                    std::thread::spawn(move|| {
-                        send_file::send_file(dukto_client.address)
-                    });
+                    if args.len() >= 3 {
+                        std::thread::spawn(move|| {
+                            send_multiple_files::send_multiple_files(dukto_client.address)
+                        });
+
+                    } else {
+                        std::thread::spawn(move|| {
+                            send_file::send_file(dukto_client.address)
+                        });
+                    }
                 }
             }
         }
