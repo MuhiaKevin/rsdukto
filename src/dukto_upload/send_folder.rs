@@ -1,7 +1,13 @@
 use std::collections::HashMap;
 use std::fs::{self, DirEntry, File};
 use std::net::TcpStream;
+
+#[cfg(target_os = "windows")]
+use std::os::windows::fs::MetadataExt;
+
+#[cfg(target_os = "unix")]
 use std::os::unix::fs::MetadataExt;
+
 use std::io::{self, Read, Write};
 use std::path::Path;
 
@@ -177,7 +183,9 @@ fn create_folder_info(folder_name: &Path) -> SendFolder {
         if entry.path().exists() && entry.path().is_file() && !entry.path().is_symlink() {
             let path = entry.path();
 
-            let file_size = path.metadata().unwrap().size();
+            //let file_size = path.metadata().unwrap().size();
+            let file_size = path.metadata().unwrap().len();
+
 
             map_file_to_intial_packet(root_name, &path, file_size, &mut files_and_their_packets);
 
